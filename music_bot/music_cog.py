@@ -113,7 +113,7 @@ class MusicCog(commands.Cog):
     def cog_check(self, ctx: commands.Context):
         if not ctx.guild:
             raise commands.NoPrivateMessage(
-                "This command can't be used in DM channels."
+                "Uai, ta doido zé? Pode sussurrar no meu zovido assim não, só lá no discord do Fresco."
             )
         return True
 
@@ -157,7 +157,7 @@ class MusicCog(commands.Cog):
         if audio_player:
             print("Retrieved audio player")
         if not audio_player:
-            audio_player = AudioPlayer(self.config, self.usage_db)
+            audio_player = AudioPlayer(self.config, self.usage_db, self.bot)
             self.audio_players[guild_id] = audio_player
             print(f"Stored audio player: {audio_player}")
         return audio_player
@@ -165,9 +165,9 @@ class MusicCog(commands.Cog):
     @override
     async def cog_command_error(self, ctx: commands.Context, error: Exception):
         print(type(error))
-        if isinstance(error, commands.CommandNotFound):
+        if isinstance(error, commands.errors.CommandNotFound):
             await ctx.send(
-                'Command not found. Type "-help" to see the list of valid commands.'
+                'Num sei desse comando não. Manda ai "!!help" pra ver a lista de comando que eu sei zé.'
             )
         elif isinstance(error, commands.UserInputError):
             await ctx.send(f"Bad user input received: {str(error)}")
@@ -175,9 +175,9 @@ class MusicCog(commands.Cog):
             await ctx.send(
                 f"YoutubeDL threw an error with the following message: {str(error)}"
             )
-        elif isinstance(error, SpotifyException):
+        elif isinstance(error, 'SpotifyException'):
             await ctx.send(
-                "Encountered an error when getting Spotify data. Please check if the given Spotify url is valid."
+                "Cê tem certeza que vai continuar mandando link do Spotify errado pra mim?"
             )
         else:
             await ctx.send(
@@ -186,15 +186,45 @@ class MusicCog(commands.Cog):
 
         traceback.print_exception(error)
 
+        # Comando para alterar o status do bot
+    @commands.is_owner()  # Verifica se o dono está executando o comando
+    @commands.command(name="mudarestado")
+    async def mudar_status(self, ctx, tipo: str, *, mensagem: str):
+        tipo = tipo.lower()  # Certificar que tipo é uma string e em minúsculas
+
+        # Definir o status conforme o tipo fornecido
+        if tipo == "jogando":
+            activity = discord.Game(name=mensagem)
+        elif tipo == "ouvindo":
+            activity = discord.Activity(type=discord.ActivityType.listening, name=mensagem)
+        elif tipo == "assistindo":
+            activity = discord.Activity(type=discord.ActivityType.watching, name=mensagem)
+        else:
+            await ctx.send("Tipo inválido! Use: jogando, ouvindo ou assistindo.")
+            return
+
+        # Alterar o status do bot
+        await self.bot.change_presence(status=discord.Status.online, activity=activity)
+        await ctx.send(f"Status alterado para {tipo} {mensagem}")
+
+    # Tratar o erro se uma pessoa que não é o dono tentar executar o comando
+    @mudar_status.error
+    async def mudar_status_error(self, ctx, error):
+        if isinstance(error, commands.NotOwner):
+            await ctx.send("Apenas o dono do bot pode usar esse comando!")
+        else:
+            # Lidar com outros tipos de erro
+            await ctx.send(f"Ocorreu um erro: {error}")
+
     @commands.command(name="clear")
     async def clear(self, ctx: commands.Context):
-        """Clears the song queue. This doesn't affect the current song, if any."""
+        """Limpa a fila de espera. Lembrando que não afeta a música que está tocando."""
 
         if not ctx.audio_player.song_queue:
-            await ctx.send("The queue is already empty.")
+            await ctx.send("Não existe nenhuma música na fila.")
         else:
             ctx.audio_player.clear_song_queue()
-            await ctx.send("Cleared the queue.")
+            await ctx.send("Fila está limpa agora.")
 
     @override
     @commands.Cog.listener()
@@ -215,7 +245,7 @@ class MusicCog(commands.Cog):
 
     @commands.command(name="join", aliases=["summon"], invoke_without_subcommand=True)
     async def join(self, ctx: commands.Context):
-        """Joins a voice channel."""
+        """Se junta ao canal de voz."""
         destination = ctx.author.voice.channel
         if ctx.audio_player.voice_client:
             await ctx.audio_player.voice_client.move_to(destination)
@@ -232,108 +262,106 @@ class MusicCog(commands.Cog):
 
     @commands.command(name="leave", aliases=["disconnect", "die"])
     async def leave(self, ctx: commands.Context):
-        """Completely stops the audio player and leaves the voice channel."""
+        """Faz ele parar de tocar e desconecta ele do chat de voz."""
 
         if not await ctx.audio_player.leave():
-            await ctx.send("Not connected to any voice channel.")
+            await ctx.send("Rapaz, ta doidé? To conectado em nada não.")
         else:
             del self.audio_players[ctx.guild.id]
 
     @commands.command(name="pause")
     async def pause(self, ctx: commands.Context):
-        """Pauses the current song, if playing."""
+        """Pausa a música atual que está tocando."""
 
         if not ctx.audio_player.is_currently_playing:
-            await ctx.send("There's no music playing right now.")
+            await ctx.send("Xii, tem música tocando pra eu pausar não.")
         elif not ctx.audio_player.pause():
-            await ctx.send("The current song is already paused.")
+            await ctx.send("Ta pirando né? Música já ta pausada.")
         else:
-            await ctx.send(f"Paused {ctx.audio_player.current_song}.")
+            await ctx.send(f"Pausei pra você {ctx.audio_player.current_song}.")
 
     @commands.command(name="resume", aliases=["unpause", "continue"])
     async def resume(self, ctx: commands.Context):
-        """Resumes the current song, if paused."""
+        """Faz a música voltar a tocar."""
 
         if not ctx.audio_player.is_currently_playing:
-            await ctx.send("There's no music playing right now.")
+            await ctx.send("Cê ta doido, doido? Tem música tocando não.")
         elif not ctx.audio_player.resume():
-            await ctx.send("The current song is not paused.")
+            await ctx.send("Ou cê pirou ou eu pirei, porque a música já ta tocando.")
         else:
-            await ctx.send(f"Resumed {ctx.audio_player.current_song}.")
+            await ctx.send(f"Escutou ai? Escutei aqui agora a {ctx.audio_player.current_song}.")
 
     @commands.command(name="stop")
     async def stop(self, ctx: commands.Context):
-        """Completely stops the audio player.
-        Stops playing the current song and clears the queue."""
+        """Para completamente de tocar a música.
+        Para a música atual e ainda limpa a fila atual."""
 
         if not await ctx.audio_player.stop():
-            await ctx.send("There's no music playing right now.")
+            await ctx.send("Cê ta doido, doido? Tem música tocando não.")
         else:
-            await ctx.send("Stopped the audio player.")
+            await ctx.send("Parou porque? Porque parou? PAREI PORQUE QUIS (mentira, você mandou).")
 
     @commands.command(name="back")
     async def back(self, ctx: commands.Context):
-        """Goes back to the previous song."""
+        """Volta na música anterior."""
 
         if not ctx.audio_player.prev_songs:
-            return await ctx.send("No song to go back to.")
+            return await ctx.send("Tem música anterior aqui nas minhas memória RAM não.")
 
         if not await ctx.audio_player.skip(back=True):
-            return await ctx.send("Not playing any music right now.")
+            return await ctx.send("Cê ta doido, doido? Tem música tocando não.")
 
-    @commands.command(name="skip")
+    @commands.command(name="skip", aliases=["s", "pular"])
     async def skip(self, ctx: commands.Context):
-        """Skips a song and plays the next one, if any."""
+        """Pula a música atual."""
 
         if not await ctx.audio_player.skip():
-            return await ctx.send("Not playing any music right now.")
+            return await ctx.send("Cê ta doido, doido? Tem música tocando não.")
 
     @commands.command(name="status")
     async def status(self, ctx: commands.Context):
-        """Shows the current song and queue, if any."""
+        """Mostra a música atual e a fila, caso exista."""
 
         if ctx.audio_player.is_queue_looping:
-            await ctx.send("The queue is currently looping.")
+            await ctx.send("Ao infinito e além! Ta no loop essa fila, tá?.")
         else:
-            await ctx.send("The queue is not looping.")
+            await ctx.send("Tem nada em loop por aqui.")
         await ctx.invoke(self.now)
         await ctx.invoke(self.queue)
 
     @commands.command(name="now", aliases=["current", "playing"])
     async def now(self, ctx: commands.Context):
-        """Shows the current song, if any."""
+        """Mostra a música atual, caso esteja tocando."""
 
         if not ctx.audio_player.is_currently_playing:
-            return await ctx.send("Not playing any music right now.")
+            return await ctx.send("Cê ta doido, doido? Tem música tocando não.")
 
         await ctx.send(embed=ctx.audio_player.current_song.create_embed())
 
-    @commands.command(name="queue", aliases=["showqueue"])
+    @commands.command(name="queue", aliases=["showqueue", "fila"])
     async def queue(self, ctx: commands.Context, *, page: int = 1):
-        """Shows the songs in the queue.
-        You can optionally specify the page to show. Each page contains
-        config.max_shown_songs elements (defaults to 10).
-        """
+        """Mostra as músicas na fila.
+        Você também pode indicar a página que quer ver."""
         if not ctx.audio_player.song_queue:
-            return await ctx.send("Empty queue.")
+            return await ctx.send("Opa, é lotérica? Fila ta vazia uai.")
 
         await ctx.send(embed=ctx.audio_player.get_song_queue_embed(page))
 
     @commands.command(name="shuffle")
     async def shuffle(self, ctx: commands.Context):
-        """Randomly shuffles the queue."""
+        """Randomiza a fila."""
 
         if not ctx.audio_player or not ctx.audio_player.song_queue:
-            return await ctx.send("Empty queue.")
+            return await ctx.send("Opa, é lotérica? Fila ta vazia uai.")
 
         ctx.audio_player.shuffle_song_queue()
 
     @commands.command(name="stats")
     async def stats(self, ctx: commands.Context, *args):
-        """Gets stats on a song, user, or guild."""
+        """Quer status de uma música ou usuário? Toma."""
 
         if not self.config.enable_usage_database:
-            await ctx.send("Stats are not enabled.")
+            await ctx.send("Status não ta habilitado.")
             return
 
         create_stats_kwargs = dict()
@@ -348,11 +376,11 @@ class MusicCog(commands.Cog):
         if len(args) > index:
             if is_spotify_album_or_playlist(args[index]):
                 return await ctx.send(
-                    "Can only retrieve stats for a Spotify track, not an album or playlist."
+                    "Você só pode pedir status de uma música específica do Spotify, não de um álbum/playlist."
                 )
             elif is_yt_playlist(args[index]) and not is_yt_video(args[index]):
                 return await ctx.send(
-                    "Can only retrieve stats for a YouTube video, not a YouTube playlist."
+                    "Você só pode pedir status de uma música específica do Youtube, não de uma playlist."
                 )
             elif is_spotify_track(args[index]):
                 create_stats_kwargs["spotify_args"] = args[index]
@@ -403,22 +431,22 @@ class MusicCog(commands.Cog):
 
         await ctx.send(f"{removed_song} was successfully removed from the queue.")
 
-    @commands.command(name="slap", aliases=["punch"])
+    @commands.command(name="slap", aliases=["punch", "tapa"])
     async def slap(self, ctx: commands.Context):
-        """Slaps the bot."""
-        await ctx.send("Ouch!  😱\nPlease don't hit me!")
+        """Tapinha no bot."""
+        await ctx.send("UEPA!  😱\nDesmerela! Bate em mim não debônio")
 
     @commands.command(name="loop", aliases=["repeat"])
     async def loop(self, ctx: commands.Context):
-        """Loops the queue.
-        Invoke this command again to stop looping the queue.
+        """Deixa a fila em Loop.
+        Execute este comando novamente para parar o loop.
         """
 
         ctx.audio_player.flip_is_queue_looping()
         if ctx.audio_player.is_queue_looping:
-            await ctx.send("The queue is now looping.")
+            await ctx.send("Ao infinito e além! Ta no loop essa fila, tá?.")
         else:
-            await ctx.send("The queue is no longer looping.")
+            await ctx.send("Agora a fila já não ta mais no loop.")
 
     async def _play(self, ctx: commands.Context, args: str, play_next: bool = False):
         """Helper function for the play and playnext commands.
@@ -466,10 +494,13 @@ class MusicCog(commands.Cog):
                     end = time.time()
                     print(f"Inserting song request took {end - start} seconds.")
                 ctx.audio_player.add_to_song_queue(song, play_next=play_next)
+                song_name = song.title if hasattr(song, 'title') else str(song)
                 if play_next:
-                    await ctx.send(f"Playing {song} next.")
+                    await ctx.send(f"Vamos tocar {song} na próxima.")
                 else:
-                    await ctx.send(f"Enqueued {song}.")
+                    await ctx.send(f"Vou tocar agora (lá ele) {song}.")
+                    # activity = discord.Activity(type=discord.ActivityType.listening, name=song_name)
+                    # await self.bot.change_presence(status=discord.Status.online, activity=activity)
             else:  # Playlist
                 await ctx.send(embed=playlist.create_embed())
 
@@ -491,7 +522,7 @@ class MusicCog(commands.Cog):
                     + "Use `-queue` to see the songs added to the queue."
                 )
 
-    @commands.command(name="play")
+    @commands.command(name="play", aliases=["p"])
     async def play(self, ctx: commands.Context, *, args: str):
         """Plays a song, or a collection of songs from an album or playlist.
 
@@ -516,8 +547,8 @@ class MusicCog(commands.Cog):
     async def ensure_voice_connection(self, ctx: commands.Context):
         """Ensures the bot is connected to the requester's voice channel."""
         if not ctx.author.voice or not ctx.author.voice.channel:
-            raise commands.CommandError("You are not connected to any voice channel.")
+            raise commands.CommandError("Rapaz, quer que eu conecte aonde? Se nem sei onde você tá... Conecta em um canal de voz criatura!")
 
         if ctx.voice_client:
             if ctx.voice_client.channel != ctx.author.voice.channel:
-                raise commands.CommandError("Bot is already in a voice channel.")
+                raise commands.CommandError("Me atrapalha não, que eu já to dando meu show em outro canal de voz.")

@@ -17,7 +17,7 @@ class Config:
         # Load config file
         config_data = self.load_config_file(filename)
 
-        self.command_prefix: str = config_data.get("command_prefix", "-")
+        self.command_prefix: str = config_data.get("command_prefix", "!!")
 
         # Stats and Usage data
         self.data_dir: str = config_data.get("data_dir", "data")
