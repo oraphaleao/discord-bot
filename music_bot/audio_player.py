@@ -108,11 +108,11 @@ class AudioPlayer:
                 print(f"about to play song: {self.current_song}")
                 self.current_song.record_start()
 
-                # Atualiza o status do bot
+                # Update Bot Status
                 await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=self.current_song.title))
 
                 self.voice_client.play(
-                    self.current_song.audio_source, after=lambda e: asyncio.run_coroutine_threadsafe(self.play_next_song(e), self.event_loop)
+                    self.current_song.audio_source, after=self.play_next_song
                 )
 
                 print(f"Sending embed")
@@ -171,7 +171,7 @@ class AudioPlayer:
         """Randomly shuffles the song queue."""
         self.song_queue.shuffle()
 
-    async def play_next_song(self, play_audio_error: Exception = None):
+    def play_next_song(self, play_audio_error: Exception = None):
         """Gets the audio player ready to play the next song.
 
         This function is used as the "after" callback for self.voice_client.play() in play_audio(),
@@ -204,19 +204,7 @@ class AudioPlayer:
             self.push_to_prev_songs = True
 
         self.current_song = None
-
-        if self.song_queue.empty:
-            await self.send_empty_queue_message(self.voice_client.channel)
-        else:
-            # Chama a próxima música diretamente se a fila não estiver vazia.
-            self.play_next_song_event.set()
-            # Adicione a lógica para tocar a próxima música.
-            await self.poll_song_queue()
-            self.current_song.record_start()
-            self.voice_client.play(
-                self.current_song.audio_source, after=lambda e: asyncio.run_coroutine_threadsafe(self.play_next_song(e), self.event_loop)
-            )
-            await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=self.current_song.title))
+        self.play_next_song_event.set()
 
     async def send_empty_queue_message(self, channel: discord.VoiceChannel):
         """Sends a message to the voice channel indicating the queue is empty.
