@@ -109,7 +109,10 @@ class AudioPlayer:
                 self.current_song.record_start()
 
                 # Update Bot Status
-                await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=self.current_song.title))
+                await self.bot.change_presence(
+                    status=discord.Status.do_not_disturb,
+                    activity=discord.Activity(type=discord.ActivityType.listening, name=self.current_song.title)
+                )
 
                 self.voice_client.play(
                     self.current_song.audio_source, after=self.play_next_song
@@ -121,6 +124,14 @@ class AudioPlayer:
                 )
 
                 await self.play_next_song_event.wait()
+
+                # Verificar se a fila está vazia após tocar a música
+                if self.song_queue.is_empty():
+                    # Atualizar o status para "Ouvindo nada"
+                    await self.bot.change_presence(
+                        status=discord.Status.online,
+                        activity=discord.Activity(type=discord.ActivityType.listening, name="nada")
+                    )
         except Exception as e:
             print("PRINTING EXCEPTION: ", traceback.format_exc())
 
@@ -215,6 +226,13 @@ class AudioPlayer:
         print("Empty queue, sending message to warning.")
         await channel.send("Opa, nenhuma música mais? Parou o show mesmo?")
 
+    async def updateBot(self):
+        """Sends an update to bot of his activity"""
+
+        print("Sending new Status to bot.")
+        # Update Bot Status
+        await self.bot.change_presence(discord.Status.do_not_disturb, activity=discord.Activity(type=discord.ActivityType.listening, name=self.current_song.title))
+
     async def skip(self, back: bool = False) -> bool:
         """Skips the current song and starts playing the next one.
 
@@ -265,6 +283,10 @@ class AudioPlayer:
         if self.is_currently_playing:
             self.clear_song_queue()
             self.voice_client.stop()
+            await self.bot.change_presence(
+                status=discord.Status.online,
+                activity=discord.Activity(type=discord.ActivityType.listening, name="nada")
+            )
             return True
         return False
 
@@ -278,6 +300,10 @@ class AudioPlayer:
         if self.voice_client:
             await self.stop()
             await self.voice_client.disconnect()
+            await self.bot.change_presence(
+                status=discord.Status.online,
+                activity=discord.Activity(type=discord.ActivityType.listening, name="música sozinho 🥹")
+            )
             self.voice_client = None
             return True
         return False

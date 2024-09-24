@@ -304,6 +304,10 @@ class SongQueue(asyncio.Queue):
         self._finished.clear()
         self._wakeup_next(self._getters)
 
+    def is_empty(self) -> bool:
+        """Retorna True se a fila de músicas estiver vazia."""
+        return len(self._queue) == 0  # Supondo que `self.queue` seja a lista que mantém as músicas
+
     def _extend(self, songs: Sequence[Song], play_next: bool) -> None:
         if play_next:
             self._queue.extendleft(songs[::-1])

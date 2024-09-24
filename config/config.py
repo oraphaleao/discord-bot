@@ -29,11 +29,11 @@ class Config:
         )
         self.figure_dir: str = config_data.get("figure_dir", "figures")
         self.enable_usage_database: bool = config_data.get(
-            "enable_usage_database", False
+            "enable_usage_database", True
         )
         self.reset_usage_database: bool = config_data.get("reset_usage_database", False)
         self.enable_stats_usage_graph: bool = config_data.get(
-            "enable_stats_usage_graph", False
+            "enable_stats_usage_graph", True
         )
 
         # Music

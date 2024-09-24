@@ -228,7 +228,7 @@ def regex_match_spotify_url(url: str) -> Match[str]:
     """
 
     spotify_url_pattern = re.compile(
-        r"^https:\/\/open.spotify.com\/(?P<music_type>track|album|playlist)\/(?P<id>[a-zA-Z0-9]+)"
+        r"^https:\/\/open.spotify.com(?:\/intl-[a-zA-Z]{2})?\/(?P<music_type>track|album|playlist)\/(?P<id>[a-zA-Z0-9]+)"
     )
     return spotify_url_pattern.match(url)
 

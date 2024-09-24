@@ -190,6 +190,8 @@ class MusicCog(commands.Cog):
     @commands.is_owner()  # Verifica se o dono está executando o comando
     @commands.command(name="mudarestado")
     async def mudar_status(self, ctx, tipo: str, *, mensagem: str):
+        """Muda o status atual do Bot (Apenas o dono do Bot)."""
+
         tipo = tipo.lower()  # Certificar que tipo é uma string e em minúsculas
 
         # Definir o status conforme o tipo fornecido
